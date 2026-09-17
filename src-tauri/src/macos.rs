@@ -22,7 +22,8 @@
 
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::ffi::{c_char, c_int, c_void};
+use std::ffi::{c_char, c_int, c_void, OsStr};
+use std::path::{Component, Path};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::{Mutex, OnceLock};
 
@@ -581,17 +582,20 @@ fn relaunch_from_dev_bundle() -> Result<(), String> {
             .and_then(|p| p.parent())
             .ok_or("missing bundle root")?
             .to_path_buf();
-        write_dev_bundle_icons(&app)?;
+        let app_name = bundle_name_from_app_path(&app)
+            .unwrap_or_else(|| dev_bundle_name_from_env(DEV_BUNDLE_DEFAULT_NAME));
+        write_dev_bundle_icons(&app, &app_name)?;
         return Ok(());
     }
+    let app_name = dev_bundle_name_from_env(DEV_BUNDLE_DEFAULT_NAME);
 
     let app = exe
         .parent()
         .ok_or("missing exe parent")?
-        .join(dev_bundle_dir_name());
+        .join(dev_bundle_dir_name(&app_name));
     let macos_dir = app.join("Contents/MacOS");
     std::fs::create_dir_all(&macos_dir).map_err(|e| e.to_string())?;
-    write_dev_bundle_icons(&app)?;
+    write_dev_bundle_icons(&app, &app_name)?;
 
     let bundled = macos_dir.join("monocode");
     let _ = std::fs::remove_file(&bundled);
@@ -624,10 +628,10 @@ fn relaunch_from_dev_bundle() -> Result<(), String> {
 }
 
 #[cfg(debug_assertions)]
-fn write_dev_bundle_icons(app: &std::path::Path) -> Result<(), String> {
+fn write_dev_bundle_icons(app: &Path, app_name: &str) -> Result<(), String> {
     let resources = app.join("Contents/Resources");
     std::fs::create_dir_all(&resources).map_err(|e| e.to_string())?;
-    std::fs::write(app.join("Contents/Info.plist"), dev_bundle_plist())
+    std::fs::write(app.join("Contents/Info.plist"), dev_bundle_plist(app_name))
         .map_err(|e| e.to_string())?;
     std::fs::write(resources.join("AppIcon.icns"), DEV_ICNS).map_err(|e| e.to_string())?;
     std::fs::write(resources.join("Assets.car"), DEV_ASSETS_CAR).map_err(|e| e.to_string())?;
@@ -649,17 +653,38 @@ const DEV_ICNS: &[u8] = include_bytes!("../icons/icon.icns");
 #[cfg(debug_assertions)]
 const DEV_ASSETS_CAR: &[u8] = include_bytes!("../macos/Assets.car");
 #[cfg(debug_assertions)]
-fn dev_bundle_dir_name() -> String {
-    format!("{}.app", dev_bundle_name())
+fn dev_bundle_dir_name(app_name: &str) -> String {
+    format!("{app_name}.app")
 }
 
 #[cfg(debug_assertions)]
-fn dev_bundle_name() -> String {
+fn dev_bundle_name_from_env(fallback: &str) -> String {
     std::env::var(DEV_BUNDLE_NAME_ENV)
         .ok()
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| DEV_BUNDLE_DEFAULT_NAME.into())
+        .and_then(|value| sanitized_dev_bundle_name(&value))
+        .unwrap_or_else(|| fallback.into())
+}
+
+#[cfg(debug_assertions)]
+fn sanitized_dev_bundle_name(value: &str) -> Option<String> {
+    let value = value.trim();
+    let mut components = Path::new(value).components();
+    match (components.next(), components.next()) {
+        (Some(Component::Normal(component)), None) if component == OsStr::new(value) => {
+            Some(value.into())
+        }
+        _ => None,
+    }
+}
+
+#[cfg(debug_assertions)]
+fn bundle_name_from_app_path(app: &Path) -> Option<String> {
+    (app.extension() == Some(OsStr::new("app")))
+        .then(|| app.file_stem())
+        .flatten()
+        .and_then(|name| name.to_str())
+        .map(str::to_string)
+        .filter(|name| !name.is_empty())
 }
 
 #[cfg(debug_assertions)]
@@ -671,8 +696,8 @@ fn escape_plist_text(value: &str) -> String {
 }
 
 #[cfg(debug_assertions)]
-fn dev_bundle_plist() -> Vec<u8> {
-    let app_name = escape_plist_text(&dev_bundle_name());
+fn dev_bundle_plist(app_name: &str) -> Vec<u8> {
+    let app_name = escape_plist_text(app_name);
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -709,4 +734,40 @@ fn dev_bundle_plist() -> Vec<u8> {
 "#
     )
     .into_bytes()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn sanitized_dev_bundle_name_accepts_single_component() {
+        assert_eq!(
+            sanitized_dev_bundle_name("  MonoCode Dev  "),
+            Some("MonoCode Dev".into())
+        );
+    }
+
+    #[test]
+    fn sanitized_dev_bundle_name_rejects_invalid_components() {
+        for invalid in ["", "   ", ".", "..", "../Other", "/tmp/Other", "Foo/Bar"] {
+            assert_eq!(sanitized_dev_bundle_name(invalid), None, "{invalid}");
+        }
+    }
+
+    #[test]
+    fn bundle_name_from_app_path_reads_existing_bundle_name() {
+        assert_eq!(
+            bundle_name_from_app_path(Path::new("/tmp/MonoCode Dev.app")),
+            Some("MonoCode Dev".into())
+        );
+    }
+
+    #[test]
+    fn dev_bundle_plist_uses_the_provided_app_name() {
+        let plist = String::from_utf8(dev_bundle_plist("MonoCode Dev")).unwrap();
+        assert!(plist.contains("<string>MonoCode Dev</string>"));
+        assert!(!plist.contains("<string>MonoCode</string>"));
+    }
 }
