@@ -182,6 +182,24 @@ describe("grid arcade enabled setting", () => {
 });
 
 describe("workspace navigation keybindings", () => {
+  it("documents the command palette and reload shortcuts", () => {
+    expect(
+      KEYBINDINGS.filter((row) =>
+        ["App: Command Palette", "View: Reload"].includes(row.command),
+      ),
+    ).toEqual([
+      {
+        command: "App: Command Palette",
+        keys: "⌘⇧P",
+        when: "Always",
+      },
+      {
+        command: "View: Reload",
+        keys: "⌘⇧R",
+        when: "Always",
+      },
+    ]);
+  });
   it("documents session and project cycling in the shortcut list", () => {
     const rows = KEYBINDINGS.filter((row) =>
       /^(Session|Project): (Previous|Next)$/.test(row.command),

@@ -781,6 +781,7 @@ export default function App({
     useState<EditorNavigationTarget | null>(null);
   const editorNavigationToken = useRef(0);
   const [filePickerOpen, setFilePickerOpen] = useState(false);
+  const [filePickerInitialQuery, setFilePickerInitialQuery] = useState("");
   const [dirtyFiles, setDirtyFiles] = useState<Set<string>>(
     () => new Set(windowTransfer?.dirtyFileIds ?? []),
   );
@@ -6413,8 +6414,17 @@ export default function App({
     setSearchViewOpen(false);
     setInboxViewOpen(false);
     setNotesViewOpen(false);
+    setFilePickerInitialQuery("");
     setFilePickerOpen(true);
   }, []);
+  const onOpenCommandPalette = useCallback(() => {
+    setSearchViewOpen(false);
+    setInboxViewOpen(false);
+    setNotesViewOpen(false);
+    setFilePickerInitialQuery(">");
+    setFilePickerOpen(true);
+  }, []);
+  const onReload = useCallback(() => window.location.reload(), []);
 
   const onFindInProject = useCallback(() => {
     setSearchViewOpen(false);
@@ -6661,6 +6671,8 @@ export default function App({
     onFocusDir,
     onToggleSidebar,
     onGoToFile,
+    onOpenCommandPalette,
+    onReload,
     onFindInProject,
     onOpenSearch,
     onOpenInbox,
@@ -6689,6 +6701,8 @@ export default function App({
     onFocusDir,
     onToggleSidebar,
     onGoToFile,
+    onOpenCommandPalette,
+    onReload,
     onFindInProject,
     onOpenSearch,
     onOpenInbox,
@@ -6852,6 +6866,18 @@ export default function App({
         run("go_to_file", actions.current.onGoToFile);
         return;
       }
+      if (mod && e.shiftKey && !e.altKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        e.stopPropagation();
+        run("open_command_palette", actions.current.onOpenCommandPalette);
+        return;
+      }
+      if (mod && e.shiftKey && !e.altKey && e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        e.stopPropagation();
+        run("reload", actions.current.onReload);
+        return;
+      }
       if (mod && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "k") {
         const target = e.target instanceof Element ? e.target : null;
         if (target?.closest(".monocode-terminal") && e.ctrlKey && !e.metaKey) {
@@ -6927,7 +6953,11 @@ export default function App({
       listen("open_project", () => {
         void actions.current.pickProject();
       }),
-      listen("go_to_file", () => actions.current.onGoToFile()),
+      listen("go_to_file", () => run("go_to_file", actions.current.onGoToFile)),
+      listen("open_command_palette", () =>
+        run("open_command_palette", actions.current.onOpenCommandPalette),
+      ),
+      listen("reload", () => run("reload", actions.current.onReload)),
       listen("open_search", () => actions.current.onOpenSearch()),
       listen("open_inbox", () => actions.current.onOpenInbox()),
       listen("open_notes", () => actions.current.onOpenNotes()),
@@ -7457,7 +7487,11 @@ export default function App({
               open
               cwd={gitCwd}
               openPaths={openFilePaths}
+              initialQuery={filePickerInitialQuery}
               onOpenFile={onOpenFile}
+              onRunAction={(id) => {
+                if (id === "reload") actions.current.onReload();
+              }}
               onClose={() => setFilePickerOpen(false)}
             />
           ) : null}
