@@ -878,7 +878,16 @@ export function Composer({
 
     if (
       composer?.querySelector(
-        "[data-model-picker], [data-access-picker], [data-model-settings], [data-file-picker], [data-branch-picker], [data-skill-picker], [data-session-folder-picker], [data-mention-picker], [data-composer-plus], [data-question-form]",
+        "[data-skill-picker], [data-session-folder-picker], [data-mention-picker], [data-composer-plus], [data-question-form]",
+      )
+    )
+      return;
+    // Model/access/branch/settings/file pickers render through a portal into
+    // document.body (see Popover.tsx), so they never appear under this
+    // composer's own DOM subtree — check the whole document for those.
+    if (
+      document.querySelector(
+        "[data-model-picker], [data-access-picker], [data-model-settings], [data-file-picker], [data-branch-picker]",
       )
     )
       return;

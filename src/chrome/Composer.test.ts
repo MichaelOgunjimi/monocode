@@ -173,4 +173,23 @@ describe("Composer question focus", () => {
     expect(document.activeElement).toBe(otherInput);
     otherComposer.remove();
   });
+
+  it("does not steal focus from a picker portaled outside the composer", async () => {
+    await renderComposer(undefined, vi.fn(), true);
+
+    // Popover.tsx portals picker content directly into document.body, so it
+    // never sits under this composer's own [data-composer] subtree.
+    const portaledPicker = document.createElement("div");
+    portaledPicker.setAttribute("data-model-picker", "");
+    const searchInput = document.createElement("input");
+    portaledPicker.append(searchInput);
+    document.body.append(portaledPicker);
+    searchInput.focus();
+    expect(document.activeElement).toBe(searchInput);
+
+    await renderComposer(undefined, vi.fn(), false);
+
+    expect(document.activeElement).toBe(searchInput);
+    portaledPicker.remove();
+  });
 });
