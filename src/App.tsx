@@ -6416,6 +6416,7 @@ export default function App({
     setInboxViewOpen(false);
     setNotesViewOpen(false);
     setFilePickerInitialQuery("");
+    setFilePickerResetToken((token) => token + 1);
     setFilePickerOpen(true);
   }, []);
   const onOpenCommandPalette = useCallback(() => {
