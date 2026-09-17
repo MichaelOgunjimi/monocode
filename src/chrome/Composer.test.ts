@@ -153,4 +153,24 @@ describe("Composer question focus", () => {
     expect(document.activeElement).toBe(textarea);
     decoy.remove();
   });
+
+  it("does not steal focus from a control inside a different composer", async () => {
+    await renderComposer(undefined, vi.fn(), true);
+
+    // Simulates focus reaching another mounted Composer's control via
+    // keyboard Tab navigation, which never fires the onMouseDown-based
+    // onFocus that would normally update which pane is "focused".
+    const otherComposer = document.createElement("div");
+    otherComposer.setAttribute("data-composer", "");
+    const otherInput = document.createElement("textarea");
+    otherComposer.append(otherInput);
+    document.body.append(otherComposer);
+    otherInput.focus();
+    expect(document.activeElement).toBe(otherInput);
+
+    await renderComposer(undefined, vi.fn(), false);
+
+    expect(document.activeElement).toBe(otherInput);
+    otherComposer.remove();
+  });
 });
