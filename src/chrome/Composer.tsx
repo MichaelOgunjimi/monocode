@@ -869,9 +869,11 @@ export function Composer({
   useEffect(() => {
     if (!focused) return;
     if (
-      document.querySelector(
-        "[data-model-picker], [data-access-picker], [data-model-settings], [data-file-picker], [data-branch-picker], [data-skill-picker], [data-session-folder-picker], [data-mention-picker], [data-composer-plus], [data-question-form]",
-      )
+      ref.current
+        ?.closest("[data-composer]")
+        ?.querySelector(
+          "[data-model-picker], [data-access-picker], [data-model-settings], [data-file-picker], [data-branch-picker], [data-skill-picker], [data-session-folder-picker], [data-mention-picker], [data-composer-plus], [data-question-form]",
+        )
     )
       return;
     ref.current?.focus();
