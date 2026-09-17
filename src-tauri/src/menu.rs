@@ -17,42 +17,22 @@ pub fn dispatch(app: &AppHandle, id: &str) {
             let _ = crate::window::open_new_window(app);
         }
         "quit" => crate::window::request_quit(app),
-        "new_tab"
-        | "close_tab"
-        | "close_other_tabs"
-        | "next_tab"
-        | "prev_tab"
-        | "back_tab"
-        | "forward_tab"
-        | "split_right"
-        | "split_down"
-        | "focus_left"
-        | "focus_right"
-        | "focus_up"
-        | "focus_down"
-        | "toggle_sidebar"
-        | "sidebar_opacity"
-        | "open_project"
-        | "go_to_file"
-        | "open_command_palette"
-        | "open_search"
-        | "open_inbox"
-        | "open_notes"
-        | "find_in_project"
-        | "find"
-        | "new_terminal"
-        | "new_terminal_tab"
-        | "toggle_terminal"
-        | "open_model_picker"
-        | "open_settings"
-        | "check_for_updates" => {
+        "new_tab" | "close_tab" | "close_other_tabs" | "next_tab" | "prev_tab" | "back_tab"
+        | "forward_tab" | "split_right" | "split_down" | "focus_left" | "focus_right"
+        | "focus_up" | "focus_down" | "toggle_sidebar" | "sidebar_opacity" | "open_project"
+        | "go_to_file" | "open_search" | "open_inbox" | "open_notes" | "find_in_project"
+        | "find" | "new_terminal" | "new_terminal_tab" | "toggle_terminal"
+        | "open_model_picker" | "open_settings" | "check_for_updates" => {
             let _ = app.emit(id, ());
         }
-        // Zoom, Reload, and Close All Tabs target one window: a broadcast would
+        // Zoom, Reload, Command Palette, and Close All Tabs target one window: a broadcast would
         // make every window act on a single menu click.
-        "zoom_in" | "zoom_out" | "zoom_reset" | "reload" | "close_all_tabs" => {
-            emit_to_focused(app, id)
-        }
+        "zoom_in"
+        | "zoom_out"
+        | "zoom_reset"
+        | "reload"
+        | "open_command_palette"
+        | "close_all_tabs" => emit_to_focused(app, id),
         _ => {}
     }
 }

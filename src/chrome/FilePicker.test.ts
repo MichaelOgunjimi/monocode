@@ -36,7 +36,7 @@ vi.mock("../lib/recents", () => ({
   looksLikeProject: () => true,
 }));
 
-import { FilePicker } from "./FilePicker";
+import { FilePicker, reloadActionHint } from "./FilePicker";
 
 let container: HTMLDivElement;
 let root: Root;
@@ -94,6 +94,10 @@ function press(input: HTMLInputElement, key: string) {
 }
 
 describe("file picker command mode", () => {
+  it("formats reload shortcut hints for macOS and non-macOS", () => {
+    expect(reloadActionHint("⌘", "⇧")).toBe("⌘⇧R");
+    expect(reloadActionHint("Ctrl+", "Shift+")).toBe("Ctrl+Shift+R");
+  });
   it("opens from an initial > query without ranking project files", () => {
     renderPicker(">");
 
@@ -106,7 +110,7 @@ describe("file picker command mode", () => {
       dialog.querySelector('[role="listbox"][aria-label="Commands"]'),
     ).not.toBeNull();
     expect(dialog.textContent).toContain("Reload MonoCode");
-    expect(dialog.textContent).toContain("⌘⇧R");
+    expect(dialog.textContent).toContain(reloadActionHint());
     expect(rankProjectFiles).not.toHaveBeenCalled();
   });
 

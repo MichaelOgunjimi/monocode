@@ -22,6 +22,7 @@ import type { OpenFileFn } from "../lib/search";
 import { useLockOverscroll } from "../hooks/useLockOverscroll";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { MatchText } from "./MatchText";
+import { MOD, SHIFT } from "../lib/platform";
 type Action = {
   id: string;
   label: string;
@@ -29,9 +30,12 @@ type Action = {
 };
 
 type RankedAction = Action & FuzzyHit;
+export function reloadActionHint(mod = MOD, shift = SHIFT) {
+  return `${mod}${shift}R`;
+}
 
 const ACTIONS: Action[] = [
-  { id: "reload", label: "Reload MonoCode", hint: "⌘⇧R" },
+  { id: "reload", label: "Reload MonoCode", hint: reloadActionHint() },
 ];
 
 type Props = {
