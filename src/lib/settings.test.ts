@@ -26,6 +26,7 @@ import {
   saveLiveAgentsEnabled,
   saveNotesEnabled,
 } from "./settings";
+import { MOD, SHIFT } from "./platform";
 
 const KEY = "monocode.composerRunner";
 const COMPOSER_EFFORT_VISIBLE_KEY = "monocode.composerEffortVisible";
@@ -190,12 +191,12 @@ describe("workspace navigation keybindings", () => {
     ).toEqual([
       {
         command: "App: Command Palette",
-        keys: "⌘⇧P",
+        keys: `${MOD}${SHIFT}P`,
         when: "Always",
       },
       {
         command: "View: Reload",
-        keys: "⌘⇧R",
+        keys: `${MOD}${SHIFT}R`,
         when: "Always",
       },
     ]);
