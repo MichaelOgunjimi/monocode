@@ -564,8 +564,17 @@ pub(crate) fn prefer_bundle_dock_icon() {
 fn current_exe_is_bundled() -> bool {
     std::env::current_exe()
         .ok()
-        .and_then(|exe| exe.parent().map(|p| p.join("..").join("Info.plist")))
-        .is_some_and(|plist| plist.exists())
+        .and_then(|exe| existing_bundle_root_from_exe(&exe))
+        .is_some()
+}
+
+#[cfg(debug_assertions)]
+fn existing_bundle_root_from_exe(exe: &Path) -> Option<(std::path::PathBuf, String)> {
+    let app = exe.parent()?.parent()?.parent()?.to_path_buf();
+    let app_name = bundle_name_from_app_path(&app)?;
+    app.join("Contents/Info.plist")
+        .exists()
+        .then_some((app, app_name))
 }
 
 #[cfg(debug_assertions)]
@@ -575,15 +584,7 @@ fn relaunch_from_dev_bundle() -> Result<(), String> {
     use std::process::Command;
 
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    if current_exe_is_bundled() {
-        let app = exe
-            .parent()
-            .and_then(|p| p.parent())
-            .and_then(|p| p.parent())
-            .ok_or("missing bundle root")?
-            .to_path_buf();
-        let app_name = bundle_name_from_app_path(&app)
-            .unwrap_or_else(|| dev_bundle_name_from_env(DEV_BUNDLE_DEFAULT_NAME));
+    if let Some((app, app_name)) = existing_bundle_root_from_exe(&exe) {
         write_dev_bundle_icons(&app, &app_name)?;
         return Ok(());
     }
@@ -739,7 +740,24 @@ fn dev_bundle_plist(app_name: &str) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn test_bundle_exe_path(app_name: &str) -> (PathBuf, PathBuf) {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "monocode-macos-tests-{}-{nonce}",
+            std::process::id()
+        ));
+        let app = root.join(app_name);
+        let exe = app.join("Contents/MacOS/monocode");
+        std::fs::create_dir_all(exe.parent().unwrap()).unwrap();
+        std::fs::write(app.join("Contents/Info.plist"), b"plist").unwrap();
+        (root, exe)
+    }
 
     #[test]
     fn sanitized_dev_bundle_name_accepts_single_component() {
@@ -762,6 +780,13 @@ mod tests {
             bundle_name_from_app_path(Path::new("/tmp/MonoCode Dev.app")),
             Some("MonoCode Dev".into())
         );
+    }
+
+    #[test]
+    fn existing_bundle_root_from_exe_rejects_bundle_roots_without_a_usable_name() {
+        let (root, exe) = test_bundle_exe_path(".app");
+        assert_eq!(existing_bundle_root_from_exe(&exe), None);
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
