@@ -1280,6 +1280,16 @@ export default function App({
         if (focused) {
           flushHarnessEvents();
           syncDockBadge(sessionsRef.current);
+          if (
+            document.activeElement === document.body &&
+            !projectTerminalFocusedRef.current &&
+            !searchViewOpenRef.current &&
+            !inboxViewOpenRef.current &&
+            !notesViewOpenRef.current &&
+            !settingsOpenRef.current
+          ) {
+            setComposerFocused(true);
+          }
         }
       })
       .then((fn) => {

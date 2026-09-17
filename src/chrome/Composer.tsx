@@ -877,7 +877,7 @@ export function Composer({
     )
       return;
     ref.current?.focus();
-  }, [focused, question]);
+  }, [focused, question, busy]);
 
   useEffect(() => {
     if (!enabled) {
