@@ -782,6 +782,7 @@ export default function App({
   const editorNavigationToken = useRef(0);
   const [filePickerOpen, setFilePickerOpen] = useState(false);
   const [filePickerInitialQuery, setFilePickerInitialQuery] = useState("");
+  const [filePickerResetToken, setFilePickerResetToken] = useState(0);
   const [dirtyFiles, setDirtyFiles] = useState<Set<string>>(
     () => new Set(windowTransfer?.dirtyFileIds ?? []),
   );
@@ -6422,6 +6423,7 @@ export default function App({
     setInboxViewOpen(false);
     setNotesViewOpen(false);
     setFilePickerInitialQuery(">");
+    setFilePickerResetToken((token) => token + 1);
     setFilePickerOpen(true);
   }, []);
   const onReload = useCallback(() => window.location.reload(), []);
@@ -7484,6 +7486,7 @@ export default function App({
 
           {filePickerOpen ? (
             <FilePicker
+              key={filePickerResetToken}
               open
               cwd={gitCwd}
               openPaths={openFilePaths}
