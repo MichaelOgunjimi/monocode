@@ -588,7 +588,7 @@ fn relaunch_from_dev_bundle() -> Result<(), String> {
     let app = exe
         .parent()
         .ok_or("missing exe parent")?
-        .join("MonoCode.app");
+        .join(dev_bundle_dir_name());
     let macos_dir = app.join("Contents/MacOS");
     std::fs::create_dir_all(&macos_dir).map_err(|e| e.to_string())?;
     write_dev_bundle_icons(&app)?;
@@ -627,7 +627,8 @@ fn relaunch_from_dev_bundle() -> Result<(), String> {
 fn write_dev_bundle_icons(app: &std::path::Path) -> Result<(), String> {
     let resources = app.join("Contents/Resources");
     std::fs::create_dir_all(&resources).map_err(|e| e.to_string())?;
-    std::fs::write(app.join("Contents/Info.plist"), DEV_BUNDLE_PLIST).map_err(|e| e.to_string())?;
+    std::fs::write(app.join("Contents/Info.plist"), dev_bundle_plist())
+        .map_err(|e| e.to_string())?;
     std::fs::write(resources.join("AppIcon.icns"), DEV_ICNS).map_err(|e| e.to_string())?;
     std::fs::write(resources.join("Assets.car"), DEV_ASSETS_CAR).map_err(|e| e.to_string())?;
     let _ = std::process::Command::new("/usr/bin/touch")
@@ -636,7 +637,11 @@ fn write_dev_bundle_icons(app: &std::path::Path) -> Result<(), String> {
     Ok(())
 }
 
-/// Must match `CFBundleIdentifier` in `DEV_BUNDLE_PLIST` and tauri.conf.json.
+/// Must match `CFBundleIdentifier` in the generated dev bundle plist and tauri.conf.json.
+#[cfg(debug_assertions)]
+const DEV_BUNDLE_DEFAULT_NAME: &str = "MonoCode";
+#[cfg(debug_assertions)]
+const DEV_BUNDLE_NAME_ENV: &str = "MONOCODE_DEV_APP_NAME";
 #[cfg(debug_assertions)]
 const DEV_BUNDLE_ID: &str = "com.monocode.desktop";
 #[cfg(debug_assertions)]
@@ -644,14 +649,39 @@ const DEV_ICNS: &[u8] = include_bytes!("../icons/icon.icns");
 #[cfg(debug_assertions)]
 const DEV_ASSETS_CAR: &[u8] = include_bytes!("../macos/Assets.car");
 #[cfg(debug_assertions)]
-const DEV_BUNDLE_PLIST: &[u8] = br#"<?xml version="1.0" encoding="UTF-8"?>
+fn dev_bundle_dir_name() -> String {
+    format!("{}.app", dev_bundle_name())
+}
+
+#[cfg(debug_assertions)]
+fn dev_bundle_name() -> String {
+    std::env::var(DEV_BUNDLE_NAME_ENV)
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| DEV_BUNDLE_DEFAULT_NAME.into())
+}
+
+#[cfg(debug_assertions)]
+fn escape_plist_text(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+#[cfg(debug_assertions)]
+fn dev_bundle_plist() -> Vec<u8> {
+    let app_name = escape_plist_text(&dev_bundle_name());
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>MonoCode</string>
+	<string>{app_name}</string>
 	<key>CFBundleExecutable</key>
 	<string>monocode</string>
 	<key>CFBundleIconFile</key>
@@ -663,7 +693,7 @@ const DEV_BUNDLE_PLIST: &[u8] = br#"<?xml version="1.0" encoding="UTF-8"?>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>MonoCode</string>
+	<string>{app_name}</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -676,4 +706,7 @@ const DEV_BUNDLE_PLIST: &[u8] = br#"<?xml version="1.0" encoding="UTF-8"?>
 	<true/>
 </dict>
 </plist>
-"#;
+"#
+    )
+    .into_bytes()
+}
