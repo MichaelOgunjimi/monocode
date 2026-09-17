@@ -70,11 +70,13 @@ describe("Composer question focus", () => {
     currentQuestion: UserQuestionPrompt | undefined,
     onQuestionReply: (requestId: number, reply: unknown) => void,
     busy = false,
+    focusToken = 0,
   ) {
     await act(async () =>
       root.render(
         createElement(Composer, {
           focused: true,
+          focusToken,
           harness: "claude",
           model: "claude-sonnet",
           runtimeMode: "supervised",
@@ -129,6 +131,24 @@ describe("Composer question focus", () => {
     expect(document.activeElement).toBe(decoy);
 
     await renderComposer(undefined, vi.fn(), false);
+
+    expect(document.activeElement).toBe(textarea);
+    decoy.remove();
+  });
+
+  it("returns focus to the composer textarea when focusToken bumps while already focused", async () => {
+    await renderComposer(undefined, vi.fn());
+    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+
+    const decoy = document.createElement("input");
+    document.body.append(decoy);
+    decoy.focus();
+    expect(document.activeElement).toBe(decoy);
+
+    // `focused` never changes value here (stays true throughout) — mirrors a
+    // real window blur/refocus, where React's composerFocused state doesn't
+    // change even though the OS took DOM focus away and back.
+    await renderComposer(undefined, vi.fn(), false, 1);
 
     expect(document.activeElement).toBe(textarea);
     decoy.remove();
