@@ -446,6 +446,7 @@ import type { InstalledUpdate } from "./lib/updateNotice";
 import {
   bindResumedSessions,
   closeBusyWindow,
+  confirmReload,
   hasInFlightSessions,
   hideCurrentWindow,
   closeCurrentWindow,
@@ -6427,7 +6428,12 @@ export default function App({
     setFilePickerResetToken((token) => token + 1);
     setFilePickerOpen(true);
   }, []);
-  const onReload = useCallback(() => window.location.reload(), []);
+  const onReload = useCallback(() => {
+    void (async () => {
+      if (!(await confirmReload(dirtyFilesRef.current.size > 0))) return;
+      window.location.reload();
+    })();
+  }, []);
 
   const onFindInProject = useCallback(() => {
     setSearchViewOpen(false);

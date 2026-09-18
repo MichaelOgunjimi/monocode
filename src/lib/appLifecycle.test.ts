@@ -4,7 +4,11 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { forgetHarnessSession, killAllChildren } from "./harness";
 import { newSession } from "./session";
 import { newTab } from "./layout";
-import { closeBusyWindow, setQuitWorkspace } from "./appLifecycle";
+import {
+  closeBusyWindow,
+  confirmReload,
+  setQuitWorkspace,
+} from "./appLifecycle";
 import {
   collectWorkspaceSnapshot,
   hydrateWorkspaceSnapshot,
@@ -250,5 +254,34 @@ describe("closing a busy window", () => {
     } finally {
       release();
     }
+  });
+});
+
+describe("confirming reload", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(ask).mockResolvedValue(true);
+  });
+
+  it("reloads without prompting when files are clean", async () => {
+    await expect(confirmReload(false)).resolves.toBe(true);
+    expect(ask).not.toHaveBeenCalled();
+  });
+
+  it("allows reload after unsaved changes are confirmed", async () => {
+    await expect(confirmReload(true)).resolves.toBe(true);
+    expect(ask).toHaveBeenCalledWith(
+      "Reload MonoCode and discard unsaved changes?",
+      {
+        title: "MonoCode",
+        kind: "warning",
+        okLabel: "Reload",
+      },
+    );
+  });
+
+  it("cancels reload when unsaved changes are kept", async () => {
+    vi.mocked(ask).mockResolvedValue(false);
+    await expect(confirmReload(true)).resolves.toBe(false);
   });
 });
