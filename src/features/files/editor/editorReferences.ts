@@ -16,6 +16,7 @@ export type EditorReferenceMark = {
   to: number;
 };
 
+/** Replaces the cited passages marked in the editor. */
 export const setEditorReferences = StateEffect.define<EditorReferenceMark[]>();
 
 /**

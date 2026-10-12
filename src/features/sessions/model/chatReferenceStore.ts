@@ -23,10 +23,12 @@ function subscribe(listener: () => void) {
   };
 }
 
+/** The references waiting in a session's composer, oldest first. */
 export function getChatReferences(sessionId: string): ChatReference[] {
   return bySession.get(sessionId) ?? NONE;
 }
 
+/** Replaces a session's references, or updates them from the current list. */
 export function setChatReferences(
   sessionId: string,
   action: SetStateAction<ChatReference[]>,
@@ -40,6 +42,12 @@ export function setChatReferences(
   for (const listener of [...listeners]) listener();
 }
 
+/** Drops a session's references, e.g. once the session itself is deleted. */
+export function clearChatReferences(sessionId: string): void {
+  setChatReferences(sessionId, NONE);
+}
+
+/** A session's references and a stable setter, like `useState`. */
 export function useSessionChatReferences(sessionId: string) {
   const references = useSyncExternalStore(subscribe, () =>
     getChatReferences(sessionId),

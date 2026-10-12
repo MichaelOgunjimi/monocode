@@ -20,6 +20,7 @@ export type ChatReference = {
   source?: ChatReferenceSource;
 };
 
+/** A new reference with normalised line endings and trimmed text and note. */
 export function newChatReference(
   text: string,
   note: string,
@@ -35,6 +36,7 @@ export function newChatReference(
   };
 }
 
+/** The list with one reference's note replaced. */
 export function updateChatReferenceNote(
   references: ChatReference[],
   id: string,
@@ -46,6 +48,7 @@ export function updateChatReferenceNote(
   );
 }
 
+/** The list without one reference. */
 export function removeChatReference(
   references: ChatReference[],
   id: string,
@@ -53,6 +56,7 @@ export function removeChatReference(
   return references.filter((reference) => reference.id !== id);
 }
 
+/** The pill's label, e.g. "1 annotation" or "3 annotations". */
 export function chatReferencesLabel(count: number): string {
   return `${count} ${count === 1 ? "annotation" : "annotations"}`;
 }

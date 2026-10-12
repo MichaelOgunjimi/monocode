@@ -25,6 +25,7 @@ export function paintChatReferenceHighlights(
   else CSS.highlights.delete(HIGHLIGHT);
 }
 
+/** Removes this pane's marks, leaving other panes' in place. */
 export function clearChatReferenceHighlights(owner: symbol): void {
   paintChatReferenceHighlights(owner, []);
 }

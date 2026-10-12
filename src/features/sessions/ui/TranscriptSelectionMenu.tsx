@@ -12,6 +12,7 @@ type Props = {
   onDismiss: () => void;
 };
 
+/** The toolbar over selected transcript text, and the note box Add to chat opens. */
 export function TranscriptSelectionMenu({
   selection,
   onAddToChat,

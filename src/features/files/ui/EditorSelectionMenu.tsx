@@ -20,6 +20,7 @@ export type EditorSelectionTarget = EditorCodeSelection & {
   to: number;
 };
 
+/** The toolbar over selected document text, and the note box Add to chat opens. */
 export function EditorSelectionMenu({
   selection,
   onDismiss,
